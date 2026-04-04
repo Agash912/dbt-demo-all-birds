@@ -24,7 +24,8 @@ sources:
 
       - name: raw_orders
         description: One row per order. Amounts stored in cents.
-        loaded_at_field: ordered_at
+        config:
+          loaded_at_field: ordered_at
         columns:
           - name: id
             data_tests:
@@ -54,7 +55,8 @@ sources:
 
       - name: raw_stores
         description: One row per store or fulfillment center.
-        loaded_at_field: opened_at
+        config:
+          loaded_at_field: opened_at
         columns:
           - name: id
             data_tests:
