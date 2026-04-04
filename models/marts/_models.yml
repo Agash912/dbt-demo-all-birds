@@ -14,10 +14,10 @@ models:
     description: >
       One row per order with item counts, supply cost, and customer order sequence.
       Incremental (merge) with a 3-day late-arrival lookback.
-    access: public
     config:
       contract:
         enforced: true
+      access: public
     columns:
       - name: order_id
         data_type: varchar
