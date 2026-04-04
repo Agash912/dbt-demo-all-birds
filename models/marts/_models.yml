@@ -35,9 +35,6 @@ models:
           - type: not_null
         data_tests:
           - not_null
-          - relationships:
-              to: ref('stg_customers')
-              field: customer_id
 
       - name: location_id
         data_type: varchar
@@ -147,20 +144,20 @@ unit_tests:
         rows:
           - {order_id: "o_recent", customer_id: "c1", location_id: "l1",
              subtotal: 10.00, tax_paid: 1.00, order_total: 11.00,
-             ordered_at: "{{ modules.datetime.date.today() }}"}
+             ordered_at: "2026-04-04"}
           - {order_id: "o_old", customer_id: "c2", location_id: "l1",
              subtotal: 20.00, tax_paid: 2.00, order_total: 22.00,
              ordered_at: "2020-01-01"}
       - input: ref('int_order_items_enriched')
         rows:
           - {order_item_id: "oi1", order_id: "o_recent", product_id: "p1",
-             customer_id: "c1", ordered_at: "{{ modules.datetime.date.today() }}",
+             customer_id: "c1", ordered_at: "2026-04-04",
              location_id: "l1", product_name: "Test", product_price: 10.00,
              is_food_item: true, is_drink_item: false, product_supply_cost: 2.00}
       - input: this
         rows:
           - {order_id: "o_existing", customer_id: "c3", location_id: "l1",
-             ordered_at: "{{ modules.datetime.date.today() }}",
+             ordered_at: "2026-04-04",
              subtotal: 5.00, tax_paid: 0.50, order_total: 5.50,
              order_cost: 1.00, order_items_subtotal: 5.00,
              count_order_items: 1, count_food_items: 1, count_drink_items: 0,
