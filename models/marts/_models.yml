@@ -1,0 +1,226 @@
+version: 2
+
+models:
+
+  # ---------------------------------------------------------------------------
+  # orders: incremental, contract enforced
+  # ---------------------------------------------------------------------------
+  # The contract guarantees that column names and data types stay stable.
+  # If a PR changes the output schema in a way that breaks downstream consumers,
+  # dbt will fail the build before it ever writes to the warehouse.
+  # This is especially important when BI tools or reverse ETL depend on this model.
+
+  - name: orders
+    description: >
+      One row per order with item counts, supply cost, and customer order sequence.
+      Incremental (merge) with a 3-day late-arrival lookback.
+    access: public
+    config:
+      contract:
+        enforced: true
+    columns:
+      - name: order_id
+        data_type: varchar
+        description: Primary key.
+        constraints:
+          - type: not_null
+        data_tests:
+          - unique
+          - not_null
+
+      - name: customer_id
+        data_type: varchar
+        description: FK to customers.
+        constraints:
+          - type: not_null
+        data_tests:
+          - not_null
+          - relationships:
+              to: ref('stg_customers')
+              field: customer_id
+
+      - name: location_id
+        data_type: varchar
+        description: Store or fulfillment center that shipped the order.
+
+      - name: ordered_at
+        data_type: date
+        description: Date the order was placed (day grain).
+        data_tests:
+          - not_null
+
+      - name: subtotal
+        data_type: number
+        description: Pre-tax order amount in dollars.
+
+      - name: tax_paid
+        data_type: number
+        description: Tax amount in dollars.
+
+      - name: order_total
+        data_type: number
+        description: Total charged to the customer in dollars.
+        data_tests:
+          - is_positive_value
+          - not_null
+
+      - name: order_cost
+        data_type: number
+        description: Cost of supplies for items in this order.
+
+      - name: order_items_subtotal
+        data_type: number
+        description: Sum of item-level product prices in this order.
+
+      - name: count_order_items
+        data_type: number
+        description: Number of line items in this order.
+
+      - name: count_food_items
+        data_type: number
+        description: Number of food items in this order.
+
+      - name: count_drink_items
+        data_type: number
+        description: Number of drink items in this order.
+
+      - name: is_food_order
+        data_type: boolean
+        description: True if the order includes at least one food item.
+
+      - name: is_drink_order
+        data_type: boolean
+        description: True if the order includes at least one drink item.
+
+      - name: customer_order_number
+        data_type: number
+        description: >
+          Sequence number for this customer. 1 = first order, 2 = second, etc.
+
+  # ---------------------------------------------------------------------------
+  # customers
+  # ---------------------------------------------------------------------------
+
+  - name: customers
+    description: >
+      One row per customer with lifetime metrics and segment.
+    columns:
+      - name: customer_id
+        data_tests:
+          - unique
+          - not_null
+      - name: customer_segment
+        data_tests:
+          - accepted_values:
+              values: ["champion", "loyal", "new", "casual"]
+      - name: lifetime_spend
+        data_tests:
+          - is_positive_value
+
+  # ---------------------------------------------------------------------------
+  # order_items
+  # ---------------------------------------------------------------------------
+
+  - name: order_items
+    description: >
+      One row per order line item with product and order context.
+    columns:
+      - name: order_item_id
+        data_tests:
+          - unique
+          - not_null
+
+  # ---------------------------------------------------------------------------
+  # Unit test: verifies the incremental lookback logic for orders
+  # ---------------------------------------------------------------------------
+
+unit_tests:
+  - name: test_orders_incremental_logic
+    description: >
+      Checks that the incremental filter picks up orders within the 3-day
+      lookback window and drops anything older.
+    model: orders
+    overrides:
+      macros:
+        is_incremental: true
+    given:
+      - input: ref('stg_orders')
+        rows:
+          - {order_id: "o_recent", customer_id: "c1", location_id: "l1",
+             subtotal: 10.00, tax_paid: 1.00, order_total: 11.00,
+             ordered_at: "{{ modules.datetime.date.today() }}"}
+          - {order_id: "o_old", customer_id: "c2", location_id: "l1",
+             subtotal: 20.00, tax_paid: 2.00, order_total: 22.00,
+             ordered_at: "2020-01-01"}
+      - input: ref('int_order_items_enriched')
+        rows:
+          - {order_item_id: "oi1", order_id: "o_recent", product_id: "p1",
+             customer_id: "c1", ordered_at: "{{ modules.datetime.date.today() }}",
+             location_id: "l1", product_name: "Test", product_price: 10.00,
+             is_food_item: true, is_drink_item: false, product_supply_cost: 2.00}
+      - input: this
+        rows:
+          - {order_id: "o_existing", customer_id: "c3", location_id: "l1",
+             ordered_at: "{{ modules.datetime.date.today() }}",
+             subtotal: 5.00, tax_paid: 0.50, order_total: 5.50,
+             order_cost: 1.00, order_items_subtotal: 5.00,
+             count_order_items: 1, count_food_items: 1, count_drink_items: 0,
+             is_food_order: true, is_drink_order: false, customer_order_number: 1}
+    expect:
+      rows:
+        - {order_id: "o_recent", customer_id: "c1", order_total: 11.00,
+           count_order_items: 1, is_food_order: true}
+
+
+# =============================================================================
+# Exposures: downstream consumers of the mart layer
+# =============================================================================
+# These show up in the lineage graph and make it clear who breaks when a model changes.
+
+exposures:
+
+  - name: weekly_revenue_dashboard
+    type: dashboard
+    description: >
+      Executive dashboard tracking weekly revenue, AOV, and order volume.
+      Used in Monday morning leadership reviews.
+    owner:
+      name: Analytics Team
+      email: analytics@company.com
+    depends_on:
+      - ref('orders')
+      - ref('customers')
+    url: https://looker.company.com/dashboards/weekly-revenue
+
+  - name: customer_cohort_analysis
+    type: analysis
+    description: >
+      Ad hoc analysis of customer retention and segment movement over time.
+    owner:
+      name: Analytics Team
+      email: analytics@company.com
+    depends_on:
+      - ref('customers')
+      - ref('orders')
+    url: https://hex.company.com/workspace/customer-cohorts
+
+  - name: reverse_etl_customer_segments
+    type: application
+    description: >
+      Syncs customer segment data back to Salesforce for personalized outreach.
+    owner:
+      name: Growth Engineering
+      email: growth@company.com
+    depends_on:
+      - ref('customers')
+
+  - name: anthropic_product_recommendations
+    type: ml
+    description: >
+      Feeds order and customer data into the Anthropic model for product recommendations.
+    owner:
+      name: ML Engineering
+      email: ml@company.com
+    depends_on:
+      - ref('order_items')
+      - ref('customers')

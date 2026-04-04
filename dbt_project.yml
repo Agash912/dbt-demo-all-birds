@@ -4,10 +4,13 @@ name: "jaffle_shop"
 version: "3.0.0"
 require-dbt-version: ">=1.5.0"
 
-dbt-cloud:
-  project-id: 275557 # Put your project id here
+# E-commerce analytics project for a DTC retail brand.
+# Staging > Intermediate > Marts layering pattern.
 
-profile: default # Put your profile here
+dbt-cloud:
+  project-id: 275557
+
+profile: default
 
 model-paths: ["models"]
 analysis-paths: ["analyses"]
@@ -21,9 +24,6 @@ clean-targets:
   - "target"
   - "dbt_packages"
 
-vars:
-  "dbt_date:time_zone": "America/Los_Angeles"
-
 seeds:
   jaffle_shop:
     +schema: raw
@@ -34,5 +34,7 @@ models:
   jaffle_shop:
     staging:
       +materialized: view
+    intermediate:
+      +materialized: table
     marts:
       +materialized: table

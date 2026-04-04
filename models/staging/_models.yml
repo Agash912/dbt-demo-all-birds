@@ -1,0 +1,57 @@
+version: 2
+
+models:
+  - name: stg_customers
+    description: Cleaned customer data. One row per customer.
+    columns:
+      - name: customer_id
+        data_tests:
+          - unique
+          - not_null
+
+  - name: stg_orders
+    description: Cleaned order data with amounts in dollars. One row per order.
+    columns:
+      - name: order_id
+        data_tests:
+          - unique
+          - not_null
+      - name: customer_id
+        data_tests:
+          - not_null
+      - name: order_total
+        data_tests:
+          - is_positive_value
+    data_tests:
+      - dbt_utils.expression_is_true:
+          expression: "order_total - tax_paid = subtotal"
+
+  - name: stg_order_items
+    description: Cleaned order line items. One row per item.
+    columns:
+      - name: order_item_id
+        data_tests:
+          - unique
+          - not_null
+      - name: order_id
+        data_tests:
+          - not_null
+
+  - name: stg_products
+    description: Product catalog with prices in dollars. One row per SKU.
+    columns:
+      - name: product_id
+        data_tests:
+          - unique
+          - not_null
+      - name: product_price
+        data_tests:
+          - is_positive_value
+
+  - name: stg_supplies
+    description: Supply costs per product. One row per supply per SKU.
+    columns:
+      - name: supply_uuid
+        data_tests:
+          - unique
+          - not_null

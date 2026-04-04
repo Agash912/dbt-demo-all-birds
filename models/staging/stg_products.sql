@@ -1,6 +1,7 @@
-with
+-- One row per product SKU. Converts price to dollars and
+-- flags whether the product is a food or drink item.
 
-source as (
+with source as (
 
     select * from {{ source('ecom', 'raw_products') }}
 
@@ -9,22 +10,14 @@ source as (
 renamed as (
 
     select
-
-        ----------  ids
         sku as product_id,
-
-        ---------- text
         name as product_name,
         type as product_type,
         description as product_description,
-
-
-        ---------- numerics
         {{ cents_to_dollars('price') }} as product_price,
 
-        ---------- booleans
+        -- Boolean flags for item type
         coalesce(type = 'jaffle', false) as is_food_item,
-
         coalesce(type = 'beverage', false) as is_drink_item
 
     from source

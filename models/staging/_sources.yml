@@ -1,0 +1,73 @@
+version: 2
+
+sources:
+  - name: ecom
+    schema: raw
+    description: >
+      Raw e-commerce data ingested from upstream systems (Shopify, payments, inventory).
+      Lands in S3 via Glue, then into the Snowflake raw schema.
+
+    # Source freshness runs before every pipeline build.
+    # Replaces the "Slack the DE to ask if data is ready" workflow.
+    freshness:
+      warn_after: {count: 12, period: hour}
+      error_after: {count: 24, period: hour}
+
+    tables:
+      - name: raw_customers
+        description: One row per customer account.
+        columns:
+          - name: id
+            data_tests:
+              - unique
+              - not_null
+
+      - name: raw_orders
+        description: One row per order. Amounts stored in cents.
+        loaded_at_field: ordered_at
+        columns:
+          - name: id
+            data_tests:
+              - unique
+              - not_null
+          - name: customer
+            description: FK to raw_customers.
+            data_tests:
+              - not_null
+              - relationships:
+                  to: source('ecom', 'raw_customers')
+                  field: id
+          - name: order_total
+            data_tests:
+              - not_null
+
+      - name: raw_items
+        description: One row per line item in an order.
+        columns:
+          - name: id
+            data_tests:
+              - unique
+              - not_null
+          - name: order_id
+            data_tests:
+              - not_null
+
+      - name: raw_stores
+        description: One row per store or fulfillment center.
+        loaded_at_field: opened_at
+        columns:
+          - name: id
+            data_tests:
+              - unique
+              - not_null
+
+      - name: raw_products
+        description: One row per product SKU.
+        columns:
+          - name: sku
+            data_tests:
+              - unique
+              - not_null
+
+      - name: raw_supplies
+        description: One row per supply item per product SKU.

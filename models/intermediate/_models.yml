@@ -1,0 +1,47 @@
+version: 2
+
+models:
+  - name: int_order_items_enriched
+    description: >
+      One row per order line item with product details, order context, and supply cost.
+      Replaces the monolithic stored procedure join pattern.
+    columns:
+      - name: order_item_id
+        data_tests:
+          - unique
+          - not_null
+      - name: order_id
+        data_tests:
+          - not_null
+      - name: product_supply_cost
+        data_tests:
+          - is_positive_value
+
+  - name: int_customer_order_summary
+    description: >
+      One row per customer with lifetime order metrics. Aggregated from staging.
+    columns:
+      - name: customer_id
+        data_tests:
+          - unique
+          - not_null
+      - name: lifetime_spend
+        data_tests:
+          - not_null
+          - is_positive_value
+      - name: avg_order_value
+        data_tests:
+          - is_positive_value
+
+  - name: int_customer_segments
+    description: >
+      One row per customer with a segment label added by the Python Snowpark model.
+    columns:
+      - name: customer_id
+        data_tests:
+          - unique
+          - not_null
+      - name: customer_segment
+        data_tests:
+          - accepted_values:
+              values: ["champion", "loyal", "new", "casual"]

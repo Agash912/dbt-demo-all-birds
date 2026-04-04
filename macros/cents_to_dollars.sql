@@ -1,4 +1,6 @@
-{# A basic example for a project-wide macro to cast a column uniformly #}
+-- Converts a column stored in cents to dollars.
+-- Source systems often store monetary values as integers (e.g., 1500 = $15.00).
+-- This keeps the conversion consistent across all models.
 
 {% macro cents_to_dollars(column_name) -%}
     {{ return(adapter.dispatch('cents_to_dollars')(column_name)) }}
@@ -7,15 +9,3 @@
 {% macro default__cents_to_dollars(column_name) -%}
     ({{ column_name }} / 100)::numeric(16, 2)
 {%- endmacro %}
-
-{% macro postgres__cents_to_dollars(column_name) -%}
-    ({{ column_name }}::numeric(16, 2) / 100)
-{%- endmacro %}
-
-{% macro bigquery__cents_to_dollars(column_name) %}
-    round(cast(({{ column_name }} / 100) as numeric), 2)
-{% endmacro %}
-
-{% macro fabric__cents_to_dollars(column_name) %}
-    cast({{ column_name }} / 100 as numeric(16,2))
-{% endmacro %}
