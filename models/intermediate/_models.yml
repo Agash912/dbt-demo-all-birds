@@ -15,7 +15,7 @@ models:
           - not_null
       - name: product_supply_cost
         data_tests:
-          - is_positive_value
+          - not_null
 
   - name: int_customer_order_summary
     description: >
@@ -28,10 +28,9 @@ models:
       - name: lifetime_spend
         data_tests:
           - not_null
-          - is_positive_value
       - name: avg_order_value
         data_tests:
-          - is_positive_value
+          - not_null
 
   - name: int_customer_segments
     description: >

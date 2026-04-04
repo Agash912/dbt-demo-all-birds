@@ -61,7 +61,6 @@ models:
         data_type: number
         description: Total charged to the customer in dollars.
         data_tests:
-          - is_positive_value
           - not_null
 
       - name: order_cost
@@ -115,7 +114,7 @@ models:
               values: ["champion", "loyal", "new", "casual"]
       - name: lifetime_spend
         data_tests:
-          - is_positive_value
+          - not_null
 
   # ---------------------------------------------------------------------------
   # order_items

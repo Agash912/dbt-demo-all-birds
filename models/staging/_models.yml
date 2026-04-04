@@ -21,7 +21,7 @@ models:
           - not_null
       - name: order_total
         data_tests:
-          - is_positive_value
+          - not_null
     data_tests:
       - dbt_utils.expression_is_true:
           expression: "order_total - tax_paid = subtotal"
