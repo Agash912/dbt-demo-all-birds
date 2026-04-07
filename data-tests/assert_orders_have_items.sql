@@ -1,7 +1,6 @@
 -- Every order should have at least one line item.
 -- If this returns rows, we have orphan orders with no items attached.
 -- Severity set to warn: flags the issue without blocking the pipeline.
--- 483 orders in this dataset have no items (likely cancellations).
 
 {{ config(severity='warn') }}
 
