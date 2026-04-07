@@ -12,8 +12,7 @@ dbt-cloud:
 
 profile: default
 
-# Set enable_demo_stale_items_test: true in Development (dbt Cloud env vars / job vars)
-# when you want the intentional stale-data failure for demos. Production stays green.
+# enable_demo_stale_items_test: true in Development only (intentional failing test).
 vars:
   enable_demo_stale_items_test: false
 

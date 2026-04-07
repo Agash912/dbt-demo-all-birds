@@ -24,7 +24,8 @@ models:
           - not_null
     data_tests:
       - dbt_utils.expression_is_true:
-          expression: "order_total - tax_paid = subtotal"
+          arguments:
+            expression: "order_total - tax_paid = subtotal"
 
   - name: stg_order_items
     description: Cleaned order line items. One row per item.
