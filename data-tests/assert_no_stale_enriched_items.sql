@@ -1,12 +1,12 @@
 -- Checks that enriched order items are not stale (older than 30 days).
--- If this returns rows, the intermediate layer has data that hasn't been
--- refreshed recently, which means something upstream may have stopped loading.
+-- Disabled by default so production jobs pass. Enable for demos only:
+--   dbt Cloud Development: add job or env var  enable_demo_stale_items_test: true
+--   CLI: dbt build --vars '{"enable_demo_stale_items_test": true}'
 --
--- INTENTIONALLY FAILS on this dataset because the sample data is from 2024.
--- Used during the demo to show:
---   1. What a test failure looks like in dbt Cloud
---   2. How to triage and identify the root cause
---   3. How to re-run only the affected models with: dbt build --select state:modified+
+-- On this seed data (2024 orders) the test fails when enabled. Use that to show
+-- failure triage and retry with: dbt build --select state:modified+
+
+{{ config(enabled=var('enable_demo_stale_items_test', false)) }}
 
 select
     order_item_id,

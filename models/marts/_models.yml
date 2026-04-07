@@ -108,7 +108,8 @@ models:
       - name: customer_segment
         data_tests:
           - accepted_values:
-              values: ["champion", "loyal", "new", "casual"]
+              arguments:
+                values: ["champion", "loyal", "new", "casual"]
       - name: lifetime_spend
         data_tests:
           - not_null

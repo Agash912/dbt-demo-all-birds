@@ -6,7 +6,7 @@
     config(
         materialized='incremental',
         unique_key='order_id',
-        strategy='merge',
+        incremental_strategy='merge',
         on_schema_change='append_new_columns',
         cluster_by=['ordered_at'],
         tags=['daily']
