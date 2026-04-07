@@ -16,6 +16,9 @@ models:
       - name: product_supply_cost
         data_tests:
           - not_null
+      - name: product_name
+        data_tests:
+          - not_null
 
   - name: int_customer_order_summary
     description: >
