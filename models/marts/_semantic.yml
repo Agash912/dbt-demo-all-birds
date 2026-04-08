@@ -1,0 +1,178 @@
+models:
+  - name: metricflow_time_spine
+    description: >
+      One row per day. Required by MetricFlow for time-series metric aggregation.
+    time_spine:
+      standard_granularity_column: date_day
+    columns:
+      - name: date_day
+        granularity: day
+
+
+semantic_models:
+
+  # -----------------------------------------------------------------------
+  # orders semantic model
+  # -----------------------------------------------------------------------
+  # One row per order. Primary time dimension is ordered_at.
+  # This is the foundation for revenue, order count, and AOV metrics.
+
+  - name: orders
+    defaults:
+      agg_time_dimension: ordered_at
+    description: Order-grain fact table with revenue, cost, and item counts.
+    model: ref('orders')
+
+    entities:
+      - name: order_id
+        type: primary
+      - name: customer_id
+        type: foreign
+
+    dimensions:
+      - name: ordered_at
+        type: time
+        type_params:
+          time_granularity: day
+      - name: is_food_order
+        type: categorical
+      - name: is_drink_order
+        type: categorical
+      - name: location_id
+        type: categorical
+
+    measures:
+      - name: order_total
+        agg: sum
+        description: Total revenue across all orders.
+        expr: order_total
+      - name: order_count
+        agg: count
+        description: Number of orders.
+        expr: order_id
+      - name: supply_cost
+        agg: sum
+        description: Total cost of supplies (COGS).
+        expr: order_cost
+      - name: food_order_count
+        agg: sum
+        description: Number of orders containing food items.
+        expr: "case when is_food_order then 1 else 0 end"
+      - name: drink_order_count
+        agg: sum
+        description: Number of orders containing drink items.
+        expr: "case when is_drink_order then 1 else 0 end"
+
+  # -----------------------------------------------------------------------
+  # customers semantic model
+  # -----------------------------------------------------------------------
+  # One row per customer. Useful for customer-level metrics and segmentation.
+
+  - name: customers
+    defaults:
+      agg_time_dimension: first_ordered_at
+    description: Customer-grain dimension with lifetime metrics and segment.
+    model: ref('customers')
+
+    entities:
+      - name: customer_id
+        type: primary
+
+    dimensions:
+      - name: first_ordered_at
+        type: time
+        type_params:
+          time_granularity: day
+      - name: customer_segment
+        type: categorical
+      - name: customer_type
+        type: categorical
+      - name: customer_name
+        type: categorical
+
+    measures:
+      - name: customer_count
+        agg: count
+        description: Number of unique customers.
+        expr: customer_id
+      - name: total_lifetime_spend
+        agg: sum
+        description: Sum of lifetime spend across customers.
+        expr: lifetime_spend
+
+
+# =========================================================================
+# Metrics
+# =========================================================================
+# These are the business definitions that everyone agrees on.
+# "Revenue" means the same thing whether you query from Looker, Hex, or the API.
+
+metrics:
+
+  - name: revenue
+    label: Revenue
+    type: simple
+    type_params:
+      measure: order_total
+    description: Total revenue from all orders.
+
+  - name: order_count
+    label: Order Count
+    type: simple
+    type_params:
+      measure: order_count
+    description: Total number of orders placed.
+
+  - name: avg_order_value
+    label: Average Order Value
+    type: derived
+    type_params:
+      expr: revenue / nullif(order_count, 0)
+      metrics:
+        - name: revenue
+        - name: order_count
+    description: Average revenue per order.
+
+  - name: gross_profit
+    label: Gross Profit
+    type: derived
+    type_params:
+      expr: revenue - supply_cost
+      metrics:
+        - name: revenue
+        - name: supply_cost
+          offset_window: null
+    description: Revenue minus cost of supplies.
+
+  - name: supply_cost
+    label: Supply Cost
+    type: simple
+    type_params:
+      measure: supply_cost
+    description: Total cost of supplies (COGS).
+
+  - name: food_order_pct
+    label: Food Order %
+    type: derived
+    type_params:
+      expr: cast(food_orders as double) / nullif(total_orders, 0)
+      metrics:
+        - name: food_order_count
+          alias: food_orders
+        - name: order_count
+          alias: total_orders
+    description: Percentage of orders that include a food item.
+
+  - name: food_order_count
+    label: Food Order Count
+    type: simple
+    type_params:
+      measure: food_order_count
+    description: Number of orders containing food items.
+
+  - name: customer_count
+    label: Customer Count
+    type: simple
+    type_params:
+      measure: customer_count
+    description: Total number of unique customers.
