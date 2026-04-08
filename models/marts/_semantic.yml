@@ -141,7 +141,6 @@ metrics:
       metrics:
         - name: revenue
         - name: supply_cost
-          offset_window: null
     description: Revenue minus cost of supplies.
 
   - name: supply_cost
